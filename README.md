@@ -1,7 +1,7 @@
 # MOCHAN Robot
 
 <p align="center">
-  <img src="docs/images/ui-desktop.png" alt="MOCHAN Robot 桌面端控制台" width="100%">
+  <img src="1/docs/images/Robot.jpg" alt="MOCHAN Robot" width="100%">
 </p>
 
 <p align="center">
