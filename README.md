@@ -493,14 +493,14 @@ OTA 需要 OTA 分区。默认 4MB / 1.2MB APP 分区放不下当前固件，必
 
 ### 需要安装的库
 
-- Adafruit SSD1306
-- Adafruit GFX Library
-- Adafruit BusIO
-- U8g2
-- FluxGarage RoboEyes
-- AsyncTCP
-- ESP Async WebServer
-
+- Adafruit SSD1306 2.5.17
+- Adafruit GFX Library 1.13.0
+- Adafruit BusIO 1.17.4
+- U8g2 2.37.1
+- FluxGarage RoboEyes 1.1.1
+- AsyncTCP 3.5.0
+- ESP Async WebServer 3.12.1
+**如果使用最新版的库出现问题可使用这些版本**
 ### Arduino CLI
 
 ```bash
@@ -615,35 +615,14 @@ python tools/embed_web.py
 
 欢迎提交 Issue 和 PR。提交前建议：
 
-1. 用 Arduino CLI 或 Arduino IDE 编译通过；
-2. 说明使用的 ESP32-S3 开发板、PSRAM 类型和分区方案；
-3. 如果修改了 `web_content.h`，运行 `python tools/embed_web.py` 更新 gzip 头文件；
-4. 如果改了接线，请同步更新 README 的接线表。
+1. Arduino IDE 编译通过；
+2. ESP32-S3-N16R8 CAM 开发板、OPI PSRAM
 
 ---
 
-## 发布前检查清单
-
-- [ ] 把 `1.ino` 重命名为与所在文件夹同名的 `.ino`（例如 `MOCHAN_Robot/MOCHAN_Robot.ino`）
-- [ ] 修改 `1.ino` 里的默认 `AP_PASSWORD`，不要使用示例密码
-- [ ] 选择并添加 `LICENSE` 文件
-- [ ] 确认 README 的接线表与实际硬件一致
-- [ ] 修改网页后运行 `python tools/embed_web.py`
-- [ ] 确认 `.tmp/`、`build/`、`.bin` 等构建产物没有被提交
-- [ ] 决定 `config.h` / `hw` / `net` / `utils` 旧草案是保留、迁移还是删除
-- [ ] 如果仓库公开，确认没有写入个人 WiFi 密码、密钥或设备序列号
-
----
-
-## 许可证
-
-当前仓库尚未指定开源许可证。发布到 GitHub 前，建议选择并添加 `LICENSE` 文件：
-
-- **MIT**：最宽松，适合个人项目和二次开发；
-- **Apache-2.0**：额外包含专利授权条款，适合更正式的项目。
-
-在添加许可证之前，请勿直接声称本项目已采用某个开源协议。
-
+## 版权声明
+本项目代码、硬件设计图纸版权归 Perhaps888 所有。
+仅允许个人在线浏览学习，**未经本人书面许可，严禁商用、严禁修改、严禁二次分发、严禁用于任何实物制作。**
 ---
 
 ## 致谢
