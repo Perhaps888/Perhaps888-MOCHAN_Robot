@@ -40,9 +40,9 @@ MOCHAN Robot 是一个面向学习、DIY 和演示的桌面机器人项目。它
 ### 界面预览
 
 <p align="center">
-  <img src="docs/images/ui-mobile.png" alt="手机端控制台" width="320">
+  <img src="1/docs/images/ui-mobile.png" alt="手机端控制台" width="280">
 </p>
-
+<p align="center">  <img src="1/docs/images/ui-desktop.png" alt="桌面端控制台" width="280"></p>
 > 桌面端见顶部大图；截图中的摄像头画面为占位图。
 
 ---
