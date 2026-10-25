@@ -487,7 +487,7 @@ OTA 需要 OTA 分区。默认 4MB / 1.2MB APP 分区放不下当前固件，必
 | Board | ESP32S3 Dev Module |
 | Flash Size | 16MB (128Mb) |
 | PSRAM | OPI PSRAM（N16R8） |
-| Partition Scheme | Minimal SPIFFS (1.9MB APP with OTA) |
+| Partition Scheme | 16 Flash (3MB APP/9.9 FATFS) |
 | CPU Frequency | 240MHz |
 | Upload Speed | 921600 |
 
