@@ -500,6 +500,7 @@ OTA 需要 OTA 分区。默认 4MB / 1.2MB APP 分区放不下当前固件，必
 - FluxGarage RoboEyes 1.1.1
 - AsyncTCP 3.5.0
 - ESP Async WebServer 3.12.1
+- 
 **如果使用最新版的库出现问题可使用这些版本**
 ### Arduino CLI
 
