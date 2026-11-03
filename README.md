@@ -10,13 +10,11 @@
 [![AI](https://img.shields.io/badge/AI-YOLOv8n%20%C2%B7%20ONNX%20Runtime%20Web-purple)](#7-ai-画面检测yolov8n)
 [![License](https://img.shields.io/badge/license-MIT-green)](#16-许可证)
 
-[![桌面端控制台](docs/images/ui-desktop.png)](docs/images/ui-desktop.png)
+[![机器人](docs/images/ui-desktop.png)](docs/images/Robot.jpg)
+[![操作界面](docs/images/ui-desktop.png)](docs/images/ai-detect.gif)
+
 
 </div>
-
-> **English** — MOCHAN is a palm-sized two-wheel robot car built on an **ESP32-S3-WROOM-1 N16R8** (16 MB flash / 8 MB octal PSRAM). It streams JPEG video from an **OV2640** camera over a low-latency **WebSocket** channel (with an MJPEG `/stream` fallback), drives two TT gear motors through a **DRV8833** dual H-bridge with 3 speed levels of 20 kHz PWM, renders animated robot eyes / a standby clock / Chinese text on a 128×64 **SSD1306** OLED, and is fully controlled from a phone or PC browser (Samsung OneUI-inspired web console, served gzip-compressed straight from PROGMEM). It also does **on-device-feel AI without the device doing AI**: a **YOLOv8n** model plus ONNX Runtime Web (WASM SIMD) is stored in the robot's 9.9 MB FFat partition and executed **inside the browser**, drawing `person 0.84`-style boxes on the live video and making the robot smile when it sees a human — fully offline. Video grabbing, motor control and OLED rendering run on separate **FreeRTOS tasks pinned to both cores**, with per-client ACK back-pressure, adaptive JPEG quality, NVS-persisted settings, and browser-based **OTA** firmware updates. Everything is in a single Arduino sketch; no cloud, no app, no account.
-
----
 
 ## 目录
 
