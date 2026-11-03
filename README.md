@@ -9,8 +9,6 @@
 [![Stream](https://img.shields.io/badge/MJPEG%20%2F%20WebSocket-30%20FPS-orange)](#66-视频推流三条链路)
 [![AI](https://img.shields.io/badge/AI-YOLOv8n%20%C2%B7%20ONNX%20Runtime%20Web-purple)](#7-ai-画面检测yolov8n)
 [![License](https://img.shields.io/badge/license-MIT-green)](#16-许可证)
-
-[![机器人](docs/images/Robot.jpg)](docs/images/Robot.jpg)
 [![操作界面](docs/images/ai-detect.gif)](docs/images/ai-detect.gif)
 
 
