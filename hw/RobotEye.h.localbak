@@ -1,0 +1,5 @@
+#ifndef ROBOT_EYE_H
+#define ROBOT_EYE_H
+// RobotEye 库入口 —— 包含实际实现 (header-only)
+#include "robot_eye.hpp"
+#endif
