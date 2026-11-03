@@ -1,0 +1,207 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>AI detect test</title>
+<style>
+  body{background:#111;color:#eee;font:13px monospace}
+  #wrap{position:relative;display:inline-block;margin-top:8px}
+  #ov{position:absolute;left:0;top:0;pointer-events:none}
+  #stat{color:#6f6;white-space:pre}
+  #out{color:#9cf;white-space:pre}
+</style>
+</head>
+<body>
+<div>
+  <button id="run">RUN</button>
+  <span id="stat">idle</span>
+</div>
+<div id="wrap">
+  <img id="img" crossorigin="anonymous">
+  <canvas id="ov"></canvas>
+</div>
+<pre id="out"></pre>
+
+<script>
+/* ============ AIDetector: YOLOv8n + onnxruntime-web 检测核心 ============
+ * 这份代码之后会原样嵌入固件的 web_content.h。
+ * 用法:
+ *   await AIDetector.init({ortUrl, wasmBase, modelUrl, onProgress});
+ *   boxes = await AIDetector.detect(imgOrCanvas);  // 返回源图像素坐标
+ */
+var AIDetector = (function(){
+  var COCO = ["person","bicycle","car","motorcycle","airplane","bus","train","truck","boat","traffic light",
+    "fire hydrant","stop sign","parking meter","bench","bird","cat","dog","horse","sheep","cow",
+    "elephant","bear","zebra","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee",
+    "skis","snowboard","sports ball","kite","baseball bat","baseball glove","skateboard","surfboard","tennis racket","bottle",
+    "wine glass","cup","fork","knife","spoon","bowl","banana","apple","sandwich","orange",
+    "broccoli","carrot","hot dog","pizza","donut","cake","chair","couch","potted plant","bed",
+    "dining table","toilet","tv","laptop","mouse","remote","keyboard","cell phone","microwave","oven",
+    "toaster","sink","refrigerator","book","clock","vase","scissors","teddy bear","hair drier","toothbrush"];
+
+  var session = null, inName = null, outName = null;
+  var MW = 640, MH = 640;            // 模型输入尺寸, init 时自适应
+  var busy = false;                  // 串行锁: 上一帧没推理完就跳过
+  var SCORE_TH = 0.45, NMS_IOU = 0.45, MAX_DET = 20;
+
+  function loadScript(url){
+    return new Promise(function(res, rej){
+      var s = document.createElement('script');
+      s.src = url; s.onload = res; s.onerror = function(){ rej(new Error('load '+url)); };
+      document.head.appendChild(s);
+    });
+  }
+
+  async function init(opt){
+    if (session) return;
+    if (opt.onProgress) opt.onProgress('加载推理内核...');
+    await loadScript(opt.ortUrl);
+    ort.env.wasm.wasmPaths = opt.wasmBase;
+    ort.env.wasm.numThreads = 1;
+    if (opt.onProgress) opt.onProgress('下载模型...');
+    session = await ort.InferenceSession.create(opt.modelUrl,
+      { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
+    inName  = session.inputNames[0];
+    outName = session.outputNames[0];
+    // 兼容旧版 ORT: inputMetadata 可能不存在, 允许外部强制指定
+    var md = session.inputMetadata && session.inputMetadata[inName];
+    var dims = md && md.dims;                    // [1,3,H,W] 或含动态维度
+    if (dims && dims.length === 4){
+      if (typeof dims[2] === 'number' && dims[2] > 0) MH = dims[2];
+      if (typeof dims[3] === 'number' && dims[3] > 0) MW = dims[3];
+    }
+    if (AIDetector.forceSize){ MW = MH = AIDetector.forceSize; }
+    if (opt.onProgress) opt.onProgress('就绪 (' + MW + 'x' + MH + ')');
+  }
+
+  // letterbox 到 MW×MH, 返回 {tensor, scale, padX, padY}
+  function preprocess(src){
+    var sw = src.videoWidth || src.naturalWidth || src.width;
+    var sh = src.videoHeight || src.naturalHeight || src.height;
+    var cv = document.createElement('canvas');
+    cv.width = MW; cv.height = MH;
+    var g = cv.getContext('2d', { willReadFrequently: true });
+    g.fillStyle = 'rgb(114,114,114)';
+    g.fillRect(0, 0, MW, MH);
+    var scale = Math.min(MW / sw, MH / sh);
+    var dw = Math.round(sw * scale), dh = Math.round(sh * scale);
+    var padX = Math.floor((MW - dw) / 2), padY = Math.floor((MH - dh) / 2);
+    g.drawImage(src, 0, 0, sw, sh, padX, padY, dw, dh);
+    var rgba = g.getImageData(0, 0, MW, MH).data;
+    var f32 = new Float32Array(3 * MW * MH);
+    var plane = MW * MH;
+    for (var i = 0, p = 0; i < plane; i++, p += 4){
+      f32[i]           = src_read(p) / 255;
+      f32[plane + i]   = src_read(p + 1) / 255;
+      f32[2*plane + i] = src_read(p + 2) / 255;
+    }
+    function src_read(off){ return rgba[off]; }
+    return { tensor: new ort.Tensor('float32', f32, [1, 3, MH, MW]),
+             scale: scale, padX: padX, padY: padY, sw: sw, sh: sh };
+  }
+
+  function iou(a, b){
+    var x1 = Math.max(a.x, b.x), y1 = Math.max(a.y, b.y);
+    var x2 = Math.min(a.x + a.w, b.x + b.w), y2 = Math.min(a.y + a.h, b.y + b.h);
+    var inter = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+    return inter / (a.w * a.h + b.w * b.h - inter + 1e-9);
+  }
+
+  async function detect(src){
+    if (!session || busy) return null;
+    busy = true;
+    try {
+      var pp = preprocess(src);
+      var feeds = {}; feeds[inName] = pp.tensor;
+      var res = await session.run(feeds);
+      var out = res[outName];
+      var d = out.dims;                       // [1, 84, N]
+      var C = d[1], N = d[2];
+      var v = out.data;                          // 行优先 [1,C,N]
+      var boxes = [];
+      for (var i = 0; i < N; i++){
+        // 找最高分类
+        var best = 0, bs = 0;
+        for (var c = 0; c < C - 4; c++){
+          var s = v[(4 + c) * N + i];
+          if (s > bs){ bs = s; best = c; }
+        }
+        if (bs < SCORE_TH) continue;
+        var cx = v[i], cy = v[N + i], w = v[2*N + i], h = v[3*N + i];
+        // 模型坐标 → 源图坐标
+        var x = (cx - w/2 - pp.padX) / pp.scale;
+        var y = (cy - h/2 - pp.padY) / pp.scale;
+        boxes.push({ x: x, y: y, w: w / pp.scale, h: h / pp.scale,
+                     cls: best, label: COCO[best], score: bs });
+      }
+      // 类内 NMS
+      boxes.sort(function(a, b){ return b.score - a.score; });
+      var keep = [];
+      for (var k = 0; k < boxes.length && keep.length < MAX_DET; k++){
+        var drop = false;
+        for (var m = 0; m < keep.length; m++){
+          if (keep[m].cls === boxes[k].cls && iou(keep[m], boxes[k]) > NMS_IOU){ drop = true; break; }
+        }
+        if (!drop) keep.push(boxes[k]);
+      }
+      return keep;
+    } finally { busy = false; }
+  }
+
+  return { init: init, detect: detect, COCO: COCO,
+           isBusy: function(){ return busy; },
+           ready: function(){ return !!session; } };
+})();
+</script>
+
+<script>
+/* ============ 测试页驱动 ============ */
+var qs = new URLSearchParams(location.search);
+var MODEL = qs.get('m') === 'f32' ? 'yolov8n-f32.onnx'
+          : qs.get('m') === '320' ? 'yolov8n-320-int8.onnx'
+          : 'yolov8n-int8-640.onnx';
+var IMG = qs.get('img') === 'bus' ? 'test_bus.jpg' : 'test_zidane.jpg';
+if (qs.get('dim')) AIDetector.forceSize = +qs.get('dim');
+var stat = document.getElementById('stat');
+var img = document.getElementById('img');
+img.src = 'ai_assets_raw/' + IMG;
+
+function say(t){ stat.textContent = t; }
+
+document.getElementById('run').onclick = async function(){
+  try {
+    say('init...');
+    var t0 = performance.now();
+    await AIDetector.init({
+      ortUrl:   'ai_assets_raw/ort.wasm.min.js',
+      wasmBase: 'ai_assets_raw/',
+      modelUrl: 'ai_assets_raw/' + MODEL,
+      onProgress: say
+    });
+    say('model ready, infer...');
+    var t1 = performance.now();
+    var boxes = await AIDetector.detect(img);
+    var t2 = performance.now();
+    say('done init=' + Math.round(t1-t0) + 'ms infer=' + Math.round(t2-t1) + 'ms boxes=' + (boxes ? boxes.length : 'null'));
+
+    var ov = document.getElementById('ov');
+    ov.width = img.naturalWidth; ov.height = img.naturalHeight;
+    ov.style.width = img.clientWidth + 'px'; ov.style.height = img.clientHeight + 'px';
+    var g = ov.getContext('2d');
+    g.clearRect(0, 0, ov.width, ov.height);
+    g.font = '16px monospace';
+    (boxes || []).forEach(function(b){
+      g.strokeStyle = '#0f0'; g.lineWidth = 2;
+      g.strokeRect(b.x, b.y, b.w, b.h);
+      var txt = b.label + ' ' + (b.score*100).toFixed(0) + '%';
+      g.fillStyle = '#0f0';
+      g.fillText(txt, b.x + 2, Math.max(14, b.y - 4));
+    });
+    document.getElementById('out').textContent = JSON.stringify(boxes, null, 1);
+  } catch(e){
+    say('ERROR: ' + e.message);
+  }
+};
+</script>
+</body>
+</html>
