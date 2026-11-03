@@ -10,8 +10,8 @@
 [![AI](https://img.shields.io/badge/AI-YOLOv8n%20%C2%B7%20ONNX%20Runtime%20Web-purple)](#7-ai-画面检测yolov8n)
 [![License](https://img.shields.io/badge/license-MIT-green)](#16-许可证)
 
-[![机器人](docs/images/ui-desktop.png)](docs/images/Robot.jpg)
-[![操作界面](docs/images/ui-desktop.png)](docs/images/ai-detect.gif)
+[![机器人](docs/images/Robot.jpg)](docs/images/Robot.jpg)
+[![操作界面](docs/images/ai-detect.gif)](docs/images/ai-detect.gif)
 
 
 </div>
